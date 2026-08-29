@@ -1,9 +1,10 @@
 /**
  * `@rme-agent-bridge/sdk` — o lado-terminal da ponte.
  *
- * Por enquanto expõe só o **contrato de mensagens** (ticket #9): tipos + a
- * validação usada pelos dois lados. O handler que fala com a sessão do agente
- * e o adaptador de transporte (ADR 0001) entram nos tickets seguintes.
+ * - `contract` (#9): tipos + validação do formato de mensagem, usados pelos dois lados.
+ * - `bridge` (#10): servidor stub que fala o transporte do ADR 0001 e devolve
+ *   uma `BridgeResponse` fixa. O handler com cérebro real entra em #12.
  */
 
 export * from './contract';
+export * from './bridge';

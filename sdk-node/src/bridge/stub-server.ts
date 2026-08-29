@@ -1,0 +1,128 @@
+/**
+ * Servidor stub do lado-terminal (parte do tracer bullet #10).
+ *
+ * Fala o transporte do ADR 0001: HTTP, ligado num host que NÃO seja
+ * `localhost`/`127.` (o `isUrlSafe` do editor bloqueia esses) — por padrão
+ * `0.0.0.0`, alcançável por alias de hostname ou IP de LAN.
+ *
+ * Recebe um `BridgeRequest`, valida com o contrato (#9), e devolve um
+ * `BridgeResponse` fixo. Sem cérebro ainda — isso entra em #12.
+ */
+
+import { createServer, IncomingMessage, Server, ServerResponse } from 'node:http';
+
+import { validateRequest, validateResponse } from '../contract';
+import type { BridgeRequest, BridgeResponse, Selection } from '../contract';
+
+export interface StubServerOptions {
+  /** Host de bind. Padrão `0.0.0.0`. Nunca use `127.0.0.1` — o editor bloqueia. */
+  host?: string;
+  /** Porta. Padrão `8777`. `0` = porta efêmera (útil em teste). */
+  port?: number;
+  /** Response canned devolvida a todo request válido. */
+  cannedResponse: BridgeResponse;
+  /** Chamado a cada request recebido (log / inspeção em teste). */
+  onRequest?: (req: BridgeRequest) => void;
+}
+
+const MAX_BODY_BYTES = 8 * 1024 * 1024;
+
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    req.on('data', (c: Buffer) => {
+      size += c.length;
+      if (size > MAX_BODY_BYTES) {
+        reject(new Error('corpo grande demais'));
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  const payload = JSON.stringify(body);
+  res.writeHead(status, {
+    'content-type': 'application/json',
+    'content-length': Buffer.byteLength(payload),
+  });
+  res.end(payload);
+}
+
+/** Cria (sem iniciar) o servidor stub. */
+export function createStubServer(options: StubServerOptions): Server {
+  return createServer((req, res) => {
+    if (req.method !== 'POST') {
+      sendJson(res, 405, { error: 'use POST' });
+      return;
+    }
+
+    readBody(req)
+      .then((raw) => {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          sendJson(res, 400, { error: 'JSON inválido' });
+          return;
+        }
+
+        const reqResult = validateRequest(parsed);
+        if (!reqResult.ok) {
+          sendJson(res, 422, { error: reqResult.error });
+          return;
+        }
+
+        options.onRequest?.(reqResult.value);
+
+        // sanidade: a canned response tem que ser válida contra a seleção recebida
+        const selection: Selection = reqResult.value.selection;
+        const respResult = validateResponse(options.cannedResponse, selection);
+        if (!respResult.ok) {
+          sendJson(res, 500, {
+            error: `cannedResponse inválida para esta seleção: ${respResult.error}`,
+          });
+          return;
+        }
+
+        sendJson(res, 200, respResult.value);
+      })
+      .catch((err: unknown) => {
+        sendJson(res, 400, { error: err instanceof Error ? err.message : 'erro ao ler o corpo' });
+      });
+  });
+}
+
+export interface RunningStubServer {
+  server: Server;
+  host: string;
+  port: number;
+  close: () => Promise<void>;
+}
+
+/** Cria e inicia o servidor stub. */
+export function startStubServer(options: StubServerOptions): Promise<RunningStubServer> {
+  const host = options.host ?? '0.0.0.0';
+  const port = options.port ?? 8777;
+  const server = createStubServer(options);
+
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, host, () => {
+      const addr = server.address();
+      const boundPort = typeof addr === 'object' && addr ? addr.port : port;
+      resolve({
+        server,
+        host,
+        port: boundPort,
+        close: () =>
+          new Promise<void>((res, rej) => server.close((e) => (e ? rej(e) : res()))),
+      });
+    });
+  });
+}
