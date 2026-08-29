@@ -1,0 +1,10 @@
+services:
+  agent:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.agent
+    environment:
+      # RME roda no host (desktop); o container fala com a API local dele.
+      RME_API_URL: http://host.docker.internal:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

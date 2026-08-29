@@ -1,0 +1,17 @@
+rme-agent-bridge/
+├── .github/workflows/     # Pipelines de CI/CD (ex: build automático do C++)
+├── core-cpp/              # Fork modificado do RME com a API injetada
+│   ├── src/
+│   └── CMakeLists.txt
+├── sdk-node/              # Middleware e abstrações em TypeScript
+│   ├── src/
+│   ├── package.json
+│   └── tsconfig.json
+├── agent-python/          # Cérebro do agente (Gemini Pro) e automações
+│   ├── app/
+│   └── requirements.txt
+├── docker/                # Orquestração do ambiente isolado
+│   ├── Dockerfile.agent
+│   └── docker-compose.yml
+├── .gitignore
+└── README.md

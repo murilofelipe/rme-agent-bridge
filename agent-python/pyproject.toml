@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rme-agent"
+version = "0.0.0"
+description = "Agente autônomo que traduz especificações de mapa em chamadas à SDK do RME Agent Bridge."
+requires-python = ">=3.10"
+dependencies = [
+    # TODO(fase-3): agente e integração LLM
+    # "httpx",
+    # "google-generativeai",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.5",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
