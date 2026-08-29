@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "instruction": "preenche de grama e poe um lago no meio",
+  "selection": {
+    "min": { "x": 1000, "y": 1000, "z": 7 },
+    "max": { "x": 1003, "y": 1003, "z": 7 }
+  },
+  "tiles": [
+    { "x": 1000, "y": 1000, "z": 7, "ground": 4526 },
+    { "x": 1001, "y": 1000, "z": 7, "ground": 4526, "flags": 2 },
+    { "x": 1002, "y": 1000, "z": 7, "ground": 351, "items": [1740] },
+    { "x": 1003, "y": 1003, "z": 7, "ground": 0 }
+  ]
+}

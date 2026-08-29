@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "operations": [
+    { "type": "setGround", "x": 1000, "y": 1000, "z": 7, "id": 4526 },
+    { "type": "setGround", "x": 2000, "y": 2000, "z": 7, "id": 4526 }
+  ]
+}
