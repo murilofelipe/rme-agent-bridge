@@ -1,0 +1,9 @@
+{
+  "version": 99,
+  "instruction": "qualquer coisa",
+  "selection": {
+    "min": { "x": 1000, "y": 1000, "z": 7 },
+    "max": { "x": 1003, "y": 1003, "z": 7 }
+  },
+  "tiles": []
+}
