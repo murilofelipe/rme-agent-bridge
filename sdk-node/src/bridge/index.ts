@@ -7,3 +7,4 @@ export {
 } from './stub-server';
 
 export { handleRequest, type Brain, type HandlerResult } from './handler';
+export { claudeBrain, type ClaudeBrainOptions } from './claude-brain';

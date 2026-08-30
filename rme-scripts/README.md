@@ -12,8 +12,14 @@ operações da `BridgeResponse` numa transação única (um passo de undo).
 ### Instalação
 
 1. Copie `rme_agent.lua` para `<instalação-do-RME>/scripts/`.
-2. Suba o lado-terminal: `cd sdk-node && npm run stub` (ou o handler real
-   quando #12 existir). Ele escuta em `0.0.0.0:8777`.
+2. Suba o lado-terminal: `cd sdk-node && npm run stub`. Ele escuta em
+   `0.0.0.0:8777`. Modos:
+   - sem flag → devolve a fixture `response.valid.json`;
+   - `-- --fill 4526` → preenche a seleção com esse ground;
+   - `-- --brain claude` → **cérebro real**: cada acionamento roda
+     `claude -p` (query real, ~15-60s; o editor congela nesse intervalo —
+     ver ADR 0001). Usa a sessão do Claude Code já autenticada; nenhuma
+     credencial é pedida ou guardada.
 3. Ajuste `BRIDGE_URL` no topo do script (ver "Transporte" abaixo).
 4. No editor: abra/crie um mapa, faça uma seleção, e rode **Scripts →
    RME Agent**.
@@ -69,3 +75,12 @@ Ctrl+Z reverteu todos os 16 tiles** (undo atômico confirmado).
 > transação (id inexistente) deixa trabalho parcial — mas o passo de undo é
 > único, então **um Ctrl+Z desfaz** (o #10 confirmou o agrupamento). Rollback
 > real exige fork.
+
+### #12 — cérebro real (2026-08-29, terminal)
+
+`npm run stub -- --brain claude` na LAN + `POST /bridge` com a fixture
+(instrução "preenche tudo de grama id 4526", seleção 1000..1003):
+`claude -p` respondeu JSON limpo → `handleRequest` validou → **16 `setGround`
+dentro da seleção** em ~10s. Instrução vazia → `operations: []` sem chamar o
+binário. Cérebro fica atrás da interface `Brain` (outro agente pluga aqui).
+Loop de polling do Lua subido para 150s de margem.

@@ -20,10 +20,12 @@ export interface StubServerOptions {
   host?: string;
   /** Porta. Padrão `8777`. `0` = porta efêmera (útil em teste). */
   port?: number;
-  /** Response fixa devolvida a todo request válido. Ignorada se `respond` for dado. */
+  /** Response fixa devolvida a todo request válido. Ignorada se `respond`/`brain` for dado. */
   cannedResponse?: BridgeResponse;
-  /** Gera a response a partir do request (ainda sem cérebro — regra fixa). */
+  /** Gera a response a partir do request (regra fixa síncrona). */
   respond?: (req: BridgeRequest) => BridgeResponse;
+  /** Cérebro real (#12) — ex.: `claudeBrain()`. Tem precedência sobre `respond`/`cannedResponse`. */
+  brain?: Brain;
   /** Chamado a cada request recebido (log / inspeção em teste). */
   onRequest?: (req: BridgeRequest) => void;
 }
@@ -83,8 +85,9 @@ export function createStubServer(options: StubServerOptions): Server {
 
     const brain: Brain = (parsedReq) => {
       options.onRequest?.(parsedReq);
+      if (options.brain) return options.brain(parsedReq);
       const draft = options.respond ? options.respond(parsedReq) : options.cannedResponse;
-      if (!draft) throw new Error('stub sem `respond` nem `cannedResponse`');
+      if (!draft) throw new Error('stub sem `brain`, `respond` nem `cannedResponse`');
       return draft;
     };
 
