@@ -72,7 +72,7 @@ rme-agent-bridge/
 │       ├── contract/  # BridgeRequest/Response + validation + fixtures
 │       ├── bridge/    # handler + stub server + claudeBrain
 │       └── relay/     # command queue + session (ADR 0002)
-├── mcp-node/     # MCP server (@rme-agent-bridge/mcp) — exposes the editor as tools †
+├── mcp-node/     # MCP server (@rme-agent-bridge/mcp) — exposes the editor as tools
 ├── docs/
 │   ├── adr/          # decisions (0001 = HTTP transport · 0002 = MCP + session window)
 │   ├── agents/       # engineering-skills config
@@ -80,9 +80,6 @@ rme-agent-bridge/
 ├── CONTEXT.md
 └── README.md
 ```
-
-> † `mcp-node/` and `sdk-node/src/relay/` land with the ADR 0002 PRs (in
-> progress) — see the roadmap below.
 
 > The old plan (fork RME + a self-contained agent, `core-cpp/` + `agent-python/`
 > + `docker/`) was removed: the investigation
