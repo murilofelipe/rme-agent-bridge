@@ -1,0 +1,33 @@
+{
+  "name": "@rme-agent-bridge/mcp",
+  "version": "0.0.0",
+  "description": "MCP server que expõe o editor RME (via relay, ADR 0002) como ferramentas para qualquer agente.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "rme-mcp": "dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "jest",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.5",
+    "typescript": "^5.4.5"
+  }
+}
