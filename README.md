@@ -119,13 +119,14 @@ e [`rme-scripts/README.md`](rme-scripts/README.md).
 - [x] Cérebro real: instrução em linguagem natural → `claude -p` (sem API key)
 - [x] Overlay + auto-contorno + alertas de borda
 
-**MCP + empacotamento** (ADR 0002) — **em desenvolvimento**:
+**MCP + empacotamento** (ADR 0002) — **entregue**:
 
 - [x] `relay` — fila de comandos + sessão única
 - [x] `@rme-agent-bridge/mcp` — MCP server (stdio + HTTP), 6 ferramentas
-- [ ] Loop de sessão no `rme_agent.lua` — *a v4.0 aborta (`std::system_error`) com HTTP repetido no loop; em investigação*
-- [ ] `docker-compose` (editor headless + noVNC + relay num `up` só)
-- [ ] Plugin do Claude Code pra instalação em um comando
+- [x] Loop de sessão no `rme_agent.lua` (uma conexão `/stream`; resolveu o
+      `std::system_error` da v4.0 ao fechar stream vivo)
+- [x] `docker-compose` (editor headless + noVNC + relay + MCP num `up` só)
+- [x] Plugin do Claude Code (`/plugin marketplace add murilofelipe/rme-agent-bridge`)
 
 **Precisa de fork do RME em C++**:
 
@@ -156,8 +157,10 @@ e [`rme-scripts/README.md`](rme-scripts/README.md).
 sobe a ponte; no editor, seleciona uma região e roda **Scripts → RME Agent →
 Uma instrução**.
 
-**Modo sessão/MCP** (em desenvolvimento): `npm run relay` no `sdk-node/` +
-`rme-mcp` apontado pra ele; no editor, **Scripts → RME Agent → Sessão do agente**.
-Ver [ADR 0002](docs/adr/0002-mcp-e-janela-de-sessao.md).
+**Modo sessão/MCP:** o mais simples é o `docker-compose` — sobe editor
+(noVNC), relay e MCP num `up` só; ver [`docker/README.md`](docker/README.md) e
+o plugin em [`plugin/`](plugin/). Sem Docker: `npm run relay` no `sdk-node/` +
+`rme-mcp` apontado pra ele. No editor: **Scripts → RME Agent → Sessão do
+agente**. Ver [ADR 0002](docs/adr/0002-mcp-e-janela-de-sessao.md).
 
 Detalhes e limitações da v4.0 em [`rme-scripts/README.md`](rme-scripts/README.md).
