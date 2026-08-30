@@ -24,7 +24,11 @@ export function startFakeEditor(
 
   const loop = async (): Promise<void> => {
     while (running) {
-      const res = await fetch(`${baseUrl}/poll?session=${sessionId}&wait=1000`);
+      const res = await fetch(`${baseUrl}/poll`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ session: sessionId, wait: 1000 }),
+      });
       if (res.status === 404) return; // sessão sumiu
       if (res.status === 204) continue;
       const { command } = (await res.json()) as { command: Command };

@@ -118,6 +118,36 @@ describe('relay', () => {
     expect(String(((await res.json()) as { error: string }).error)).toMatch(/expirou/);
   }, 5000);
 
+  it('POST /poll (o editor v4.0 só faz streaming via POST)', async () => {
+    const sessionId = await openSession();
+    const editor = startFakeEditor(base, sessionId, { getTile: () => ({ ground: 4526 }) });
+    const res = await command('getTile', { x: 1, y: 1, z: 7 });
+    expect(await res.json()).toEqual({ ok: true, data: { ground: 4526 } });
+    await editor.stop();
+  });
+
+  it('POST /bridge usa o cérebro injetado (modo "uma instrução")', async () => {
+    await relay.close();
+    relay = await startRelayServer({
+      host: '127.0.0.1',
+      port: 0,
+      brain: () => ({ version: 1, operations: [{ type: 'borderize', x: 1000, y: 1000, z: 7 }] }),
+    });
+    base = `http://127.0.0.1:${relay.port}`;
+    const res = await fetch(`${base}/bridge`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        version: 1,
+        instruction: 'contorna',
+        selection: { min: { x: 1000, y: 1000, z: 7 }, max: { x: 1003, y: 1003, z: 7 } },
+        tiles: [],
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { operations: unknown[] }).operations).toHaveLength(1);
+  });
+
   it('GET /status reflete a sessão ativa', async () => {
     expect(await (await fetch(`${base}/status`)).json()).toEqual({ session: null });
     const sessionId = await openSession();
