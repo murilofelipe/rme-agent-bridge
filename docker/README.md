@@ -43,7 +43,9 @@ TIBIA_ASSETS=/caminho/abs/tibia-client/Tibia ./docker/editor-on-host-display.sh
 ```
 
 A janela do editor abre no seu X, com a sua GPU, canvas funcionando. O
-container é só pra contornar o glibc do binário v4.0.
+container é só pra contornar o glibc do binário v4.0. Ele entra na rede
+`rme-agent-bridge` do compose pra alcançar o relay (sem publicar porta —
+nada de conflito de `address already in use`).
 
 ## Assets
 

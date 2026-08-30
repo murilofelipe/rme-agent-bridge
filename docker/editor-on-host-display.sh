@@ -34,9 +34,17 @@ fi
 
 ASSETS_ID="$(jq -r '.version // "tibia"' "$TIBIA_ASSETS/package.json" 2>/dev/null || echo tibia)"
 
+# entra na rede do compose pra resolver `rme-bridge.local` (sem publicar porta)
+NET="${RME_NETWORK:-rme-agent-bridge}"
+docker network inspect "$NET" >/dev/null 2>&1 || {
+  echo "erro: a rede '$NET' não existe — rode antes:" >&2
+  echo "  docker compose -f docker/docker-compose.yml up -d relay mcp" >&2
+  exit 1
+}
+
 exec docker run --rm -it --ipc=host \
   -e DISPLAY="$DISPLAY" -v /tmp/.X11-unix:/tmp/.X11-unix "${dri[@]}" \
-  --add-host rme-bridge.local:host-gateway \
+  --network "$NET" \
   -v "$TIBIA_ASSETS":/rme-client:ro \
   -v "$HERE/../rme-scripts/rme_agent.lua":/rme/scripts/rme_agent.lua:ro \
   --entrypoint bash "$IMAGE" -c "

@@ -14,8 +14,6 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.node
     command: node sdk-node/dist/relay/cli.js --host 0.0.0.0 --port 8777
-    ports:
-      - "8777:8777"           # pro editor-on-host-display.sh (via host-gateway)
     networks:
       rme:
         aliases:
@@ -52,3 +50,4 @@ services:
 
 networks:
   rme:
+    name: rme-agent-bridge   # nome fixo — o editor-on-host-display.sh entra nela
