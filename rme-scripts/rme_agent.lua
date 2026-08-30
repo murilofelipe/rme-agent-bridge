@@ -11,6 +11,10 @@
 
 local BRIDGE_URL = "http://rme-bridge.local:8777/bridge"
 local CONTRACT_VERSION = 1
+-- teto do polling: app.sleep congela a GUI (ADR 0001), então enquanto a
+-- ponte pensa o editor fica sem responder. Com o cérebro real (claude -p)
+-- uma query leva ~15-60s; 3000 x 50ms = 150s de margem.
+local POLL_STEPS = 3000
 
 local function readSelection()
 	local sel = app.selection
@@ -55,7 +59,7 @@ local function callBridge(request)
 		return nil, "falha ao iniciar: " .. tostring(start.error)
 	end
 	local acc = ""
-	for _ = 1, 400 do
+	for _ = 1, POLL_STEPS do
 		app.sleep(50)
 		app.yield()
 		local r = http.streamRead(start.sessionId)

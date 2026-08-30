@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 
 import type { BridgeResponse } from '../contract';
 import defaultResponse from '../contract/fixtures/response.valid.json';
+import { claudeBrain } from './claude-brain';
 import { fillSelection, startStubServer } from './stub-server';
 
 function arg(name: string): string | undefined {
@@ -21,15 +22,19 @@ const host = arg('host') ?? '0.0.0.0';
 const port = Number(arg('port') ?? 8777);
 const responsePath = arg('response');
 const fill = arg('fill');
+const brainName = arg('brain');
 
-const respond = fill ? fillSelection(Number(fill)) : undefined;
-const cannedResponse = respond
-  ? undefined
-  : ((responsePath ? JSON.parse(readFileSync(responsePath, 'utf8')) : defaultResponse) as BridgeResponse);
+const brain = brainName === 'claude' ? claudeBrain() : undefined;
+const respond = !brain && fill ? fillSelection(Number(fill)) : undefined;
+const cannedResponse =
+  brain || respond
+    ? undefined
+    : ((responsePath ? JSON.parse(readFileSync(responsePath, 'utf8')) : defaultResponse) as BridgeResponse);
 
 startStubServer({
   host,
   port,
+  brain,
   respond,
   cannedResponse,
   onRequest: (req) => {
@@ -41,9 +46,11 @@ startStubServer({
   },
 })
   .then((s) => {
-    const mode = respond
-      ? `fill selection com ground ${fill}`
-      : `fixture ${responsePath ?? 'response.valid.json'}`;
+    const mode = brain
+      ? 'cérebro: claude -p (query real, ~15-60s por acionamento)'
+      : respond
+        ? `fill selection com ground ${fill}`
+        : `fixture ${responsePath ?? 'response.valid.json'}`;
     console.log(`[stub] ouvindo em ${s.host}:${s.port} — modo: ${mode}`);
   })
   .catch((err) => {
