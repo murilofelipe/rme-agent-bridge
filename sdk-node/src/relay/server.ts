@@ -5,13 +5,19 @@
  * Endpoints:
  *   POST /session         { ttlMs? }                      -> 201 { sessionId, deadline } | 409
  *   POST /session/end     { sessionId }                    -> 200 | 404
- *   GET|POST /poll   (?session&wait | { session, wait })   -> 200 { command } | 204 | 404   (renova o deadline)
+ *   POST /stream          { session }                      -> 200 ndjson: um `<command>\n` por comando, `:keepalive\n` no idle
+ *   GET|POST /poll   (?session&wait | { session, wait })   -> 200 { command } | 204 | 404   (curl/debug; o editor usa /stream)
  *   POST /result          { sessionId, commandId, ok, ... } -> 200 | 404
  *   POST /commands        { op, args }                     -> 200 { ok, data } | 502 { ok:false, error } | 409
  *   POST /bridge          BridgeRequest                    -> 200 BridgeResponse   (modo "uma instrução", ADR 0001)
  *   GET  /status                                           -> 200 { session | null }
+ *
+ * O editor v4.0 aborta (`std::system_error`) se abrir/fechar um stream por poll,
+ * então o `rme_agent.lua` mantém UMA conexão `/stream` aberta pela sessão toda
+ * (como o `claude_agent.lua` nativo faz com a API da Anthropic).
  */
 
+import { once } from 'node:events';
 import { createServer, IncomingMessage, Server, ServerResponse } from 'node:http';
 
 import { SUPPORTED_VERSION, validateResponse } from '../contract';
@@ -150,6 +156,51 @@ export function createRelayServer(options: RelayOptions = {}): Server {
           return;
         }
 
+        case 'POST /stream': {
+          const body = await parseBody(req);
+          const sessionId =
+            (typeof body.session === 'string' ? body.session : undefined) ??
+            url.searchParams.get('session') ??
+            undefined;
+          const s = sessions.active(sessionId);
+          if (!s) {
+            sendJson(res, 404, { error: 'nenhuma sessão ativa com esse id' });
+            return;
+          }
+          res.writeHead(200, {
+            'content-type': 'application/x-ndjson',
+            'cache-control': 'no-cache',
+            connection: 'keep-alive',
+          });
+          let open = true;
+          req.on('close', () => {
+            open = false;
+          });
+          while (open && !s.isClosed) {
+            s.renew();
+            const cmd = await s.poll(5_000);
+            if (!open || s.isClosed) break;
+            const line = cmd ? JSON.stringify(cmd) : ':keepalive';
+            if (!res.write(line + '\n')) {
+              // editor não está lendo — espera o dreno, com teto
+              let timer: NodeJS.Timeout | undefined;
+              const drained = await Promise.race([
+                once(res, 'drain').then(() => true),
+                new Promise<boolean>((r) => {
+                  timer = setTimeout(() => r(false), 30_000);
+                }),
+              ]);
+              clearTimeout(timer);
+              if (!drained) {
+                res.destroy();
+                break;
+              }
+            }
+          }
+          res.end();
+          return;
+        }
+
         case 'POST /result': {
           const body = await parseBody(req);
           const s = sessions.active(typeof body.sessionId === 'string' ? body.sessionId : undefined);
@@ -248,7 +299,11 @@ export function startRelayServer(options: RelayOptions = {}): Promise<RunningRel
         server,
         host,
         port: boundPort,
-        close: () => new Promise<void>((r, j) => server.close((e) => (e ? j(e) : r()))),
+        close: () =>
+          new Promise<void>((r, j) => {
+            server.closeAllConnections?.(); // derruba streams `/stream` abertos
+            server.close((e) => (e ? j(e) : r()));
+          }),
       });
     });
   });

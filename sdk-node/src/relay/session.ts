@@ -41,7 +41,11 @@ function defer<T>(): Deferred<T> {
   return { promise, resolve, reject };
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms: number) =>
+  new Promise<void>((r) => {
+    const t = setTimeout(r, ms);
+    if (typeof t.unref === 'function') t.unref();
+  });
 
 export const DEFAULT_SESSION_TTL_MS = 10 * 60_000;
 export const DEFAULT_COMMAND_TIMEOUT_MS = 60_000;

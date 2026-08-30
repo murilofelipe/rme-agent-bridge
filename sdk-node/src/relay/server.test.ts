@@ -118,7 +118,48 @@ describe('relay', () => {
     expect(String(((await res.json()) as { error: string }).error)).toMatch(/expirou/);
   }, 5000);
 
-  it('POST /poll (o editor v4.0 só faz streaming via POST)', async () => {
+  it('POST /stream: header ndjson + primeira linha (comando ou keepalive)', async () => {
+    const sessionId = await openSession();
+    const res = await fetch(`${base}/stream`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ session: sessionId }),
+    });
+    expect(res.headers.get('content-type')).toMatch(/ndjson/);
+    const reader = res.body!.getReader();
+
+    // enfileira um comando ANTES de ler — deve chegar como uma linha JSON
+    const pending = command('getSelection');
+    const dec = new TextDecoder();
+    let acc = '';
+    let line: string | undefined;
+    while (!line) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      acc += dec.decode(value, { stream: true });
+      line = acc.split('\n').find((l) => l.startsWith('{'));
+    }
+    const cmd = JSON.parse(line as string) as { id: string; op: string };
+    expect(cmd.op).toBe('getSelection');
+    await fetch(`${base}/result`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId, commandId: cmd.id, ok: true, data: null }),
+    });
+    expect(await (await pending).json()).toEqual({ ok: true, data: null });
+    await reader.cancel();
+  }, 15000);
+
+  it('POST /stream sem sessão -> 404', async () => {
+    const res = await fetch(`${base}/stream`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ session: 'nao-existe' }),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it('POST /poll (curl/debug; o editor usa /stream)', async () => {
     const sessionId = await openSession();
     const editor = startFakeEditor(base, sessionId, { getTile: () => ({ ground: 4526 }) });
     const res = await command('getTile', { x: 1, y: 1, z: 7 });
