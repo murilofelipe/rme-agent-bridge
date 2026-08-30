@@ -54,10 +54,16 @@ export function claudeBrain(options: ClaudeBrainOptions = {}): Brain {
     options.run ??
     ((prompt: string) =>
       new Promise<string>((resolve, reject) => {
-        execFile(bin, ['-p', prompt], { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 }, (err, stdout) => {
-          if (err) reject(err);
-          else resolve(stdout);
-        });
+        const child = execFile(
+          bin,
+          ['-p', prompt],
+          { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 },
+          (err, stdout) => {
+            if (err) reject(err);
+            else resolve(stdout);
+          },
+        );
+        child.stdin?.end(); // senão o CLI espera ~3s por stdin antes de começar
       }));
 
   return async (req: BridgeRequest): Promise<BridgeResponse> => {
