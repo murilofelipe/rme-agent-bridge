@@ -1,7 +1,7 @@
 # 🗺️ RME Agent Bridge
 
-[![C++](https://img.shields.io/badge/Core-C++-blue.svg)](#)
-[![TypeScript](https://img.shields.io/badge/SDK-TypeScript-3178C6.svg)](#)
+[![Lua](https://img.shields.io/badge/Editor-Lua-2C2D72.svg)](#)
+[![TypeScript](https://img.shields.io/badge/Terminal-TypeScript-3178C6.svg)](#)
 [![Node.js](https://img.shields.io/badge/Env-Node.js-339933.svg)](#)
 
 **RME Agent Bridge** é uma ponte entre agentes de IA e o **Remere's Map Editor
@@ -43,17 +43,20 @@ só expõe o mapa de um jeito que um LLM consiga raciocinar em cima.
 | --- | --- |
 | Interação | Linguagem natural via chat (terminal no MVP; dentro do RME depois) |
 | Operação do agente | Uma operação = uma transação atômica = **um** passo de undo |
-| Concorrência | Enquanto o agente mexe numa área, o RME bloqueia o input do humano ali até terminar |
+| Concorrência | Objetivo: travar o input do humano na área ativa. **Hoje só aviso visual** — o bloqueio físico precisa de fork (ver limitações abaixo) |
 | Visual | Retângulo colorido semitransparente sobre a área + label curto |
-| Comunicação | Bidirecional (WebSocket): agente manda comandos, editor manda eventos |
+| Comunicação | HTTP, um round-trip por acionamento (ADR 0001); sem canal residente na v4.0 |
 | Modos | (1) humano pede pelo chat · (2) humano seleciona área e aciona "revisar" / "continuar daqui" pelo menu do RME |
 | Auto-contorno | Automático ao fim de cada transação (desligável); também como comando avulso |
 
 ## 🎯 Alvo técnico
 
 - Editor: [`opentibiabr/remeres-map-editor`](https://github.com/opentibiabr/remeres-map-editor)
+  — build `canary-map-editor` v4.0+ (tem a API Lua: `app.transaction`, `map`,
+  `tile`, `app.mapView.addOverlay`, `http`, `Dialog`)
 - Client/itens: Tibia recente (protocolo 13.x) — um alvo só
-- Transporte: uma conexão WebSocket bidirecional, mensagens JSON
+- Transporte: **HTTP**, um round-trip por acionamento — o script Lua chama uma
+  ponte local via IP de LAN ou alias de `/etc/hosts` (ADR 0001)
 
 ---
 
@@ -61,32 +64,61 @@ só expõe o mapa de um jeito que um LLM consiga raciocinar em cima.
 
 ```text
 rme-agent-bridge/
-├── core-cpp/     # RME modificado: servidor de comandos + overlay de bloqueio
-│   ├── src/
-│   └── CMakeLists.txt
-├── sdk-node/     # Embrulho/SDK do contrato de comandos (TypeScript)
+├── rme-scripts/  # lado EDITOR: rme_agent.lua roda dentro do RME (menu Scripts)
+├── sdk-node/     # lado TERMINAL: contrato + validação + servidor da ponte (TS)
 │   └── src/
+│       ├── contract/  # BridgeRequest/Response + validação + fixtures
+│       └── bridge/    # handler, servidor stub, claudeBrain (claude -p)
 ├── docs/
+│   ├── adr/          # decisões (0001 = transporte HTTP)
 │   ├── agents/       # config das engineering skills
-│   └── planejamento/ # notas de planejamento
+│   └── planejamento/ # investigação da API Lua + notas
 ├── CONTEXT.md
 └── README.md
 ```
 
-> `agent-python/` e `docker/` existem como andaime do plano antigo (agente
-> autônomo próprio) e devem sair — o agente é externo à ponte.
+> `core-cpp/`, `agent-python/` e `docker/` são andaime do plano antigo (fork do
+> RME + agente autônomo próprio). A arquitetura colapsou para *scripts Lua +
+> lado-terminal* quando a investigação
+> (`docs/planejamento/investigacao-lua-api-rme.md`) mostrou que a API Lua da
+> v4.0 já cobre o essencial — esses diretórios devem sair.
 
 ---
 
-## 🛠️ Roadmap inicial
+## ⚠️ Limitações da build v4.0 (o que hoje precisa de fork)
+
+A investigação em runtime achou tetos na API Lua do `canary-map-editor` v4.0:
+
+- **`app.transaction` não faz rollback** — engole o erro do callback e commita
+  o trabalho parcial; `app.undo` não existe. Mitigação atual: pré-validar tudo
+  antes de abrir a transação; o que sobra, um Ctrl+Z desfaz.
+- **`app.addContextMenu` e `app.events` são código morto** — o gatilho tem que
+  ser o menu Scripts, e não dá para observar a edição do humano em tempo real.
+- **Overlay é só desenho** — não trava o input do humano na região.
+- **`File > New` exige um bundle de assets do Tibia 12+.**
+
+Detalhes: [`docs/planejamento/investigacao-lua-api-rme.md`](docs/planejamento/investigacao-lua-api-rme.md)
+e [`rme-scripts/README.md`](rme-scripts/README.md).
+
+---
+
+## 🛠️ Roadmap
+
+MVP da co-edição ao vivo (issues #8–#13) — **entregue**:
 
 - [x] Scaffolding do monorepo + CI
-- [ ] Definir a forma das mensagens do contrato (ADR)
-- [ ] Forkar o RME e trazer como submódulo em `core-cpp/rme`
-- [ ] Primeiro comando ponta a ponta: colocar um tile num RME aberto
-- [ ] Servidor WebSocket no core + overlay de bloqueio
-- [ ] SDK cobrindo o contrato + testes
-- [ ] Primeira fatia demonstrável da co-edição ao vivo
+- [x] Spike de transporte + ADR 0001 (HTTP)
+- [x] Contrato de mensagens + validação + fixtures
+- [x] Tracer bullet: menu Scripts → request real → response → tile aplicado (undo atômico)
+- [x] Validação de limites nos dois lados + pré-checagem antes da transação
+- [x] Cérebro real: instrução em linguagem natural → `claude -p` (sem API key)
+- [x] Overlay + auto-contorno + alertas de borda
+
+Próximo (precisa de fork do RME em C++):
+
+- [ ] Rollback de verdade na transação (a v4.0 engole o erro e commita o parcial)
+- [ ] Gatilho por clique-direito e observação contínua da edição do humano
+- [ ] Bloqueio físico do input do humano na área ativa
 
 ---
 
@@ -98,11 +130,13 @@ rme-agent-bridge/
 - `develop` — branch de integração; todo trabalho é mergeado aqui via PR.
 - Features: `feat/<nome>` a partir de `develop` → PR para `develop` (CI obrigatório).
 
-### Rodando cada serviço
+### Rodando
 
-| Serviço | Setup | Checks |
+| Parte | Setup | Checks |
 | --- | --- | --- |
 | `sdk-node/` | `npm ci` | `npm run lint && npm run typecheck && npm run build && npm test` |
-| `core-cpp/` | — | `cmake -S core-cpp -B core-cpp/build && cmake --build core-cpp/build` |
+| `rme-scripts/` | copiar `rme_agent.lua` para `<RME>/scripts/` | rodar pelo menu Scripts do editor |
 
-O fork do RME entra como submódulo em `core-cpp/rme` (veja `core-cpp/README.md`).
+Fluxo ponta a ponta: `cd sdk-node && npm run stub -- --brain claude` sobe a
+ponte; no editor, seleciona uma região e roda **Scripts → RME Agent**. Detalhes
+e limitações da v4.0 em [`rme-scripts/README.md`](rme-scripts/README.md).

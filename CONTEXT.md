@@ -55,9 +55,11 @@ selecionar região, rodar auto-contorno, conferir resultado.
 
 - Editor: `opentibiabr/remeres-map-editor` (fork mantido pela comunidade).
 - Client/itens: Tibia recente (protocolo 13.x). Um alvo só — ADR quando fixado.
-- Transporte: uma conexão persistente bidirecional (WebSocket), mensagens JSON.
-  O "REST" citado no README foi escolha errada para eventos empurrados pelo
-  editor. Detalhe de lib fica para ADR.
+- Transporte: **HTTP** — o script Lua do editor faz um round-trip por
+  acionamento para uma ponte local (ADR 0001). Sem canal residente: `app.sleep`
+  congela a GUI e `app.events` é código morto na v4.0. A ponte escuta num IP
+  de LAN ou alias de `/etc/hosts` — o `isUrlSafe` do editor bloqueia
+  `localhost`/`127.`/`[::1]`.
 
 ## Pendências de design (próximas sessões)
 
