@@ -194,6 +194,8 @@ local function applyOperations(operations, selection, autoBorder)
 end
 
 -- ---------------------------------------------------------------------------
+hideOverlay() -- limpa um overlay órfão de um acionamento anterior que quebrou
+
 if not app.hasMap() then
 	app.alert("Abra um mapa primeiro.")
 	return
