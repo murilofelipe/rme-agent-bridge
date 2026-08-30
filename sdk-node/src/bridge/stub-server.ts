@@ -19,10 +19,28 @@ export interface StubServerOptions {
   host?: string;
   /** Porta. Padrão `8777`. `0` = porta efêmera (útil em teste). */
   port?: number;
-  /** Response canned devolvida a todo request válido. */
-  cannedResponse: BridgeResponse;
+  /** Response fixa devolvida a todo request válido. Ignorada se `respond` for dado. */
+  cannedResponse?: BridgeResponse;
+  /** Gera a response a partir do request (ainda sem cérebro — regra fixa). */
+  respond?: (req: BridgeRequest) => BridgeResponse;
   /** Chamado a cada request recebido (log / inspeção em teste). */
   onRequest?: (req: BridgeRequest) => void;
+}
+
+/** Regra fixa: preenche o ground de cada tile da seleção com `groundId`. */
+export function fillSelection(groundId: number) {
+  return (req: BridgeRequest): BridgeResponse => {
+    const { min, max } = req.selection;
+    const operations: BridgeResponse['operations'] = [];
+    for (let z = min.z; z <= max.z; z++) {
+      for (let y = min.y; y <= max.y; y++) {
+        for (let x = min.x; x <= max.x; x++) {
+          operations.push({ type: 'setGround', x, y, z, id: groundId });
+        }
+      }
+    }
+    return { version: 1, autoBorder: true, operations };
+  };
 }
 
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
@@ -80,12 +98,20 @@ export function createStubServer(options: StubServerOptions): Server {
 
         options.onRequest?.(reqResult.value);
 
-        // sanidade: a canned response tem que ser válida contra a seleção recebida
+        const draft = options.respond
+          ? options.respond(reqResult.value)
+          : options.cannedResponse;
+        if (!draft) {
+          sendJson(res, 500, { error: 'stub sem `respond` nem `cannedResponse`' });
+          return;
+        }
+
+        // sanidade: a response tem que ser válida contra a seleção recebida
         const selection: Selection = reqResult.value.selection;
-        const respResult = validateResponse(options.cannedResponse, selection);
+        const respResult = validateResponse(draft, selection);
         if (!respResult.ok) {
           sendJson(res, 500, {
-            error: `cannedResponse inválida para esta seleção: ${respResult.error}`,
+            error: `response inválida para esta seleção: ${respResult.error}`,
           });
           return;
         }
