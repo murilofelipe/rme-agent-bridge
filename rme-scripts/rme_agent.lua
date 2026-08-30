@@ -16,6 +16,46 @@ local CONTRACT_VERSION = 1
 -- uma query leva ~15-60s; 3000 x 50ms = 150s de margem.
 local POLL_STEPS = 3000
 
+-- Overlay: só desenho — NÃO bloqueia o input do humano na região (bloqueio
+-- físico foi adiado, provável fork). Repinta durante o app.yield() do polling.
+local OVERLAY = "rme_agent_active"
+local overlayState = { on = false, region = nil, label = "" }
+
+local function showOverlay(region, label)
+	overlayState.on = true
+	overlayState.region = region
+	overlayState.label = label
+	app.mapView.addOverlay(OVERLAY, {
+		enabled = true,
+		order = 50,
+		ondraw = function(ctx)
+			if not overlayState.on or not overlayState.region then return end
+			local r = overlayState.region
+			ctx.rect({
+				x = r.min.x, y = r.min.y, z = r.min.z,
+				w = r.max.x - r.min.x + 1, h = r.max.y - r.min.y + 1,
+				filled = true, color = { r = 80, g = 140, b = 255, a = 60 },
+			})
+			ctx.rect({
+				x = r.min.x, y = r.min.y, z = r.min.z,
+				w = r.max.x - r.min.x + 1, h = r.max.y - r.min.y + 1,
+				filled = false, width = 2, color = { r = 80, g = 140, b = 255, a = 220 },
+			})
+			ctx.text({
+				x = r.min.x, y = r.min.y - 1, z = r.min.z,
+				text = overlayState.label, color = { r = 220, g = 235, b = 255, a = 235 },
+			})
+		end,
+	})
+	app.refresh()
+end
+
+local function hideOverlay()
+	overlayState.on = false
+	pcall(function() app.mapView.removeOverlay(OVERLAY) end)
+	app.refresh()
+end
+
 local function readSelection()
 	local sel = app.selection
 	if not sel or sel.isEmpty then
@@ -110,19 +150,22 @@ local function precheck(operations, selection)
 	return nil
 end
 
--- aplica as operações numa transação única (1 passo de undo)
-local function applyOperations(operations, selection)
+-- aplica as operações numa transação única (1 passo de undo). auto-contorno
+-- nos tiles tocados no fim da mesma transação, a menos que autoBorder=false.
+local function applyOperations(operations, selection, autoBorder)
 	local err = precheck(operations, selection)
 	if err then
 		error(err)
 	end
 	local applied = 0
+	local touched = {}
 	app.transaction("RME Agent", function()
 		for _, op in ipairs(operations) do
 			local tile = app.map:getOrCreateTile(op.x, op.y, op.z)
 			if not tile then
 				error("tile inválido (" .. op.x .. "," .. op.y .. "," .. op.z .. ")")
 			end
+			touched[#touched + 1] = tile
 			if op.type == "setGround" then
 				tile.ground = op.id
 			elseif op.type == "addItem" then
@@ -141,11 +184,18 @@ local function applyOperations(operations, selection)
 			end
 			applied = applied + 1
 		end
+		if autoBorder ~= false then
+			for _, tile in ipairs(touched) do
+				tile:borderize()
+			end
+		end
 	end)
 	return applied
 end
 
 -- ---------------------------------------------------------------------------
+hideOverlay() -- limpa um overlay órfão de um acionamento anterior que quebrou
+
 if not app.hasMap() then
 	app.alert("Abra um mapa primeiro.")
 	return
@@ -178,27 +228,31 @@ local request = {
 }
 print("[rme-agent] -> ponte: \"" .. data.instruction .. "\" (" .. #tiles .. " tiles)")
 
-local response, err = callBridge(request)
-if not response then
-	app.alert("Falha na ponte: " .. tostring(err))
-	return
-end
-if response.error then
-	app.alert("Ponte recusou: " .. tostring(response.error))
-	return
-end
-if response.version ~= CONTRACT_VERSION then
-	app.alert("versão de resposta incompatível: " .. tostring(response.version))
-	return
-end
-if type(response.operations) ~= "table" then
-	app.alert("resposta sem lista de operações: " .. tostring(response.error or "?"))
-	return
+showOverlay(selection, "agente: aplicando…")
+
+local function fail(msg)
+	hideOverlay()
+	app.alert(msg)
 end
 
-local ok, result = pcall(applyOperations, response.operations, selection)
+local response, err = callBridge(request)
+if not response then
+	return fail("Falha na ponte: " .. tostring(err))
+end
+if response.error then
+	return fail("Ponte recusou: " .. tostring(response.error))
+end
+if response.version ~= CONTRACT_VERSION then
+	return fail("versão de resposta incompatível: " .. tostring(response.version))
+end
+if type(response.operations) ~= "table" then
+	return fail("resposta sem lista de operações: " .. tostring(response.error or "?"))
+end
+
+local ok, result = pcall(applyOperations, response.operations, selection, response.autoBorder)
+hideOverlay()
 if not ok then
-	app.alert("Erro ao aplicar — transação revertida:\n" .. tostring(result))
+	app.alert("Erro ao aplicar:\n" .. tostring(result))
 	return
 end
 app.refresh()

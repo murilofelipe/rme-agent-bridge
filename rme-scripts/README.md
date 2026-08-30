@@ -84,3 +84,24 @@ Ctrl+Z reverteu todos os 16 tiles** (undo atômico confirmado).
 dentro da seleção** em ~10s. Instrução vazia → `operations: []` sem chamar o
 binário. Cérebro fica atrás da interface `Brain` (outro agente pluga aqui).
 Loop de polling do Lua subido para 150s de margem.
+
+### #13 — overlay + auto-contorno + alertas (2026-08-29, headless)
+
+- **Overlay** (`app.mapView.addOverlay`/`removeOverlay`, ambos `function` na
+  v4.0): retângulo azul semitransparente + rótulo "agente: aplicando…"
+  sobre a seleção, registrado antes da chamada à ponte, removido no fim
+  (sucesso ou erro). **Só desenho — não bloqueia o input do humano.**
+  Repinta durante o `app.yield()` do polling. Verificado headless:
+  `ondraw` disparou, `removeOverlay` ok.
+- **Auto-contorno**: no fim da mesma transação, `tile:borderize()` em cada
+  tile tocado, a menos que a `response` traga `autoBorder: false`.
+  Verificado headless: com `autoBorder=true` os tiles na divisa de dois
+  grounds ganham `hasBorders`; com `false`, não.
+- **Alertas de borda**: sem mapa → "Abra um mapa primeiro."; sem seleção →
+  "Selecione uma região no mapa primeiro." (guardas no topo do script;
+  `app.alert` é modal, não exercido headless — revisão de código).
+
+> **Item de fork:** "humano vê o retângulo durante o trabalho" só é
+> confirmável numa sessão de GL real ou com um cérebro lento de verdade —
+> headless a transação fecha em milissegundos. O bloqueio físico do input
+> do humano na região continua adiado (provável fork).

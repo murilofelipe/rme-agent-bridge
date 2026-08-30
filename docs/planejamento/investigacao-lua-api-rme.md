@@ -15,7 +15,7 @@ decisão em aberto que precisa de teste empírico.
 | Peça que o projeto queria construir | Já existe no fork? |
 | --- | --- |
 | API nativa de manipulação de mapa | **Sim** — API Lua rica (`map`, `tile`, `selection`, `Brushes`) |
-| Undo atômico (1 operação = 1 passo) | **Sim** — `app.transaction(nome, fn)` |
+| Undo atômico (1 operação = 1 passo) | **Sim** — `app.transaction(nome, fn)` agrupa num passo de undo. **MAS** engole o erro do callback e commita o parcial — não há rollback; `app.undo` não existe na v4.0 (verificado). Mitigação: pré-validar antes da transação. |
 | Auto-contorno via código | **Sim** — `tile:borderize()` e `tile:applyBrush(nome, autoBorder)` |
 | Overlay visual (o "bloqueio de área") | **Sim** — `app.mapView.addOverlay{ondraw=...}` |
 | Gatilho por menu de contexto | **Sim** — `app.addContextMenu(label, cb)` |
