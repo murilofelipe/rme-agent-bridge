@@ -27,6 +27,24 @@ docker compose -f docker/docker-compose.yml up --build
 3. No editor: **Scripts → RME Agent → Sessão do agente (MCP)**. Enquanto a
    sessão dura, as ferramentas MCP respondem.
 
+### ⚠️ O canvas do noVNC fica preto
+
+`Xvfb` não tem GL de hardware, então o **mapa não renderiza** no noVNC — só
+os menus, a toolbar, os diálogos e o **Scripts** funcionam. O agente aplica
+tiles normalmente (dá pra conferir com `File > Save` e abrir o `.otbm` noutro
+lugar), você só não vê ao vivo.
+
+**Pra VER o mapa** (desktop Linux com X): rode o relay+mcp pelo compose e o
+editor na sua própria tela —
+
+```bash
+docker compose -f docker/docker-compose.yml up -d relay mcp
+TIBIA_ASSETS=/caminho/abs/tibia-client/Tibia ./docker/editor-on-host-display.sh
+```
+
+A janela do editor abre no seu X, com a sua GPU, canvas funcionando. O
+container é só pra contornar o glibc do binário v4.0.
+
 ## Assets
 
 Os assets do Tibia são da Cipsoft — **não** vão na imagem. Você monta a sua
@@ -35,10 +53,9 @@ dados do seu servidor Canary.
 
 ## Limitações
 
-- O canvas fica **preto** sob GL por software (headless). Menus, diálogos,
-  Scripts e a aplicação de tiles funcionam; a renderização da vista, não —
-  então o overlay da sessão também não aparece. Ver
-  [`../rme-scripts/README.md`](../rme-scripts/README.md).
+- **Canvas preto no noVNC** (Xvfb não tem GL de hardware) — veja acima; use
+  `editor-on-host-display.sh` pra ver o mapa de verdade. O overlay da sessão
+  também só aparece com GL real.
 - Modo "uma instrução" (`POST /bridge` / `claude -p`) **não** funciona no
   compose (o container do `relay` não tem o CLI `claude` autenticado). Use a
   sessão MCP, ou rode `npm run relay` no host pra esse modo.
