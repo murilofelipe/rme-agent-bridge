@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 
 import type { BridgeResponse } from '../contract';
 import defaultResponse from '../contract/fixtures/response.valid.json';
-import { startStubServer } from './stub-server';
+import { fillSelection, startStubServer } from './stub-server';
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -20,14 +20,17 @@ function arg(name: string): string | undefined {
 const host = arg('host') ?? '0.0.0.0';
 const port = Number(arg('port') ?? 8777);
 const responsePath = arg('response');
+const fill = arg('fill');
 
-const cannedResponse = (
-  responsePath ? JSON.parse(readFileSync(responsePath, 'utf8')) : defaultResponse
-) as BridgeResponse;
+const respond = fill ? fillSelection(Number(fill)) : undefined;
+const cannedResponse = respond
+  ? undefined
+  : ((responsePath ? JSON.parse(readFileSync(responsePath, 'utf8')) : defaultResponse) as BridgeResponse);
 
 startStubServer({
   host,
   port,
+  respond,
   cannedResponse,
   onRequest: (req) => {
     console.log(
@@ -38,9 +41,10 @@ startStubServer({
   },
 })
   .then((s) => {
-    console.log(
-      `[stub] ouvindo em ${s.host}:${s.port} — devolvendo ${responsePath ?? 'fixture response.valid.json'}`,
-    );
+    const mode = respond
+      ? `fill selection com ground ${fill}`
+      : `fixture ${responsePath ?? 'response.valid.json'}`;
+    console.log(`[stub] ouvindo em ${s.host}:${s.port} — modo: ${mode}`);
   })
   .catch((err) => {
     console.error('[stub] falhou ao iniciar:', err);

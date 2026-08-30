@@ -1,4 +1,4 @@
-import { startStubServer, type RunningStubServer } from './stub-server';
+import { fillSelection, startStubServer, type RunningStubServer } from './stub-server';
 import type { BridgeResponse, Selection } from '../contract';
 
 import requestValid from '../contract/fixtures/request.valid.json';
@@ -66,6 +66,20 @@ describe('stub-server', () => {
     expect(res.status).toBe(405);
   });
 
+  it('respond=fillSelection cobre a seleção do request com setGround', async () => {
+    running = await startStubServer({
+      host: '127.0.0.1',
+      port: 0,
+      respond: fillSelection(4526),
+    });
+    const { status, json } = await post(running.port, requestValid);
+    expect(status).toBe(200);
+    const ops = json.operations as { type: string; x: number; y: number; id: number }[];
+    // seleção 1000..1003 em x e y (fixture) = 16 tiles
+    expect(ops).toHaveLength(16);
+    expect(ops.every((o) => o.type === 'setGround' && o.id === 4526)).toBe(true);
+  });
+
   it('500 se a canned response não couber na seleção do request', async () => {
     running = await startStubServer({
       host: '127.0.0.1',
@@ -74,7 +88,7 @@ describe('stub-server', () => {
     });
     const { status, json } = await post(running.port, requestValid);
     expect(status).toBe(500);
-    expect(String(json.error)).toMatch(/cannedResponse inválida/);
+    expect(String(json.error)).toMatch(/response inválida/);
   });
 });
 

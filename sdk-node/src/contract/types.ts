@@ -55,6 +55,8 @@ export interface BridgeRequest {
   /**
    * ESPARSO: só os tiles da seleção com conteúdo. Um tile da seleção ausente
    * desta lista é vazio (sem ground, sem item). Ver `./README.md`.
+   * Pode vir ausente ou como `{}` (o cliente Lua serializa lista vazia como
+   * objeto); a validação normaliza ambos para `[]`.
    */
   tiles: TileContext[];
 }

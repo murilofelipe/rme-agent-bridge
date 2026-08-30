@@ -103,13 +103,18 @@ export function validateRequest(payload: unknown): ValidationResult<BridgeReques
   const sel = validateSelection(payload.selection);
   if (!sel.ok) return sel;
 
-  if (!Array.isArray(payload.tiles)) return fail('request.tiles: precisa ser um array');
-  for (let i = 0; i < payload.tiles.length; i++) {
-    const err = validateTileContext(payload.tiles[i], i, sel.value);
+  // `tiles` esparso: pode vir ausente, ou como {} — o cliente Lua serializa uma
+  // lista vazia como objeto. Normaliza para [].
+  const rawTiles = payload.tiles;
+  const isEmptyObject = isObject(rawTiles) && Object.keys(rawTiles).length === 0;
+  const tiles = rawTiles === undefined || isEmptyObject ? [] : rawTiles;
+  if (!Array.isArray(tiles)) return fail('request.tiles: precisa ser um array (ou ausente / {})');
+  for (let i = 0; i < tiles.length; i++) {
+    const err = validateTileContext(tiles[i], i, sel.value);
     if (err) return fail(err);
   }
 
-  return { ok: true, value: payload as unknown as BridgeRequest };
+  return { ok: true, value: { ...payload, tiles } as unknown as BridgeRequest };
 }
 
 const ID_TYPES: ReadonlySet<OperationType> = new Set(['setGround', 'addItem', 'removeItem']);

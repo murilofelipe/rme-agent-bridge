@@ -52,6 +52,19 @@ describe('validateRequest', () => {
     if (!r.ok) expect(r.error).toMatch(/min não pode ser maior/);
   });
 
+  it('aceita tiles ausente (normaliza para [])', () => {
+    const { tiles: _t, ...rest } = requestValid;
+    const r = validateRequest(rest);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.tiles).toEqual([]);
+  });
+
+  it('aceita tiles como {} — Lua serializa lista vazia como objeto', () => {
+    const r = validateRequest({ ...requestValid, tiles: {} });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.tiles).toEqual([]);
+  });
+
   it('não é objeto', () => {
     expect(validateRequest('nope').ok).toBe(false);
     expect(validateRequest([]).ok).toBe(false);
