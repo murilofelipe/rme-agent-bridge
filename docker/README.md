@@ -39,13 +39,14 @@ editor na sua própria tela —
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d relay mcp
-TIBIA_ASSETS=/caminho/abs/tibia-client/Tibia ./docker/editor-on-host-display.sh
+./docker/editor-on-host-display.sh
 ```
 
-A janela do editor abre no seu X, com a sua GPU, canvas funcionando. O
-container é só pra contornar o glibc do binário v4.0. Ele entra na rede
-`rme-agent-bridge` do compose pra alcançar o relay (sem publicar porta —
-nada de conflito de `address already in use`).
+O script lê `TIBIA_ASSETS` do `docker/.env` (o mesmo do compose). A **janela**
+do editor abre na sua tela — não é um link/browser. O container é só pra
+contornar o glibc do binário v4.0; ele entra na rede `rme-agent-bridge` do
+compose pra alcançar o relay (sem publicar porta, sem conflito de
+`address already in use`).
 
 ## Assets
 

@@ -6,13 +6,17 @@
 # hardware).
 #
 #   docker compose -f docker/docker-compose.yml up -d relay mcp
-#   TIBIA_ASSETS=/caminho/abs/tibia-client/Tibia ./docker/editor-on-host-display.sh
+#   ./docker/editor-on-host-display.sh          # lê TIBIA_ASSETS do docker/.env
 #
-# No editor: Scripts -> RME Agent -> Sessão do agente (MCP).
+# A janela do editor abre na SUA TELA (não é um link/browser). No editor:
+# Scripts -> RME Agent -> Sessão do agente (MCP).
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-: "${TIBIA_ASSETS:?defina TIBIA_ASSETS = caminho ABSOLUTO da pasta com assets/ + package.json}"
+# usa o mesmo docker/.env do compose, se existir
+[ -f "$HERE/.env" ] && set -a && . "$HERE/.env" && set +a
+
+: "${TIBIA_ASSETS:?defina TIBIA_ASSETS no docker/.env (caminho ABSOLUTO da pasta com assets/ + package.json)}"
 : "${DISPLAY:?sem DISPLAY — precisa de uma sessão X (não Wayland puro / SSH sem -X)}"
 [ -f "$TIBIA_ASSETS/package.json" ] && [ -f "$TIBIA_ASSETS/assets/catalog-content.json" ] || {
   echo "erro: $TIBIA_ASSETS não tem package.json + assets/catalog-content.json" >&2; exit 1; }
