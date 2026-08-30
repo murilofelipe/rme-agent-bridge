@@ -49,7 +49,7 @@ matchbox-window-manager -use_titlebar no >/tmp/wm.log 2>&1 &
 sleep 1
 
 if x11vnc -display :99 -forever -shared -nopw -rfbport 5900 -noxdamage -bg -o /tmp/x11vnc.log; then
-  websockify --web /usr/share/novnc 8080 localhost:5900 >/tmp/novnc.log 2>&1 &
+  websockify --web /opt/novnc 8080 localhost:5900 >/tmp/novnc.log 2>&1 &
   echo "[editor] noVNC pronto:  http://localhost:8080/vnc.html"
 else
   echo "[editor] AVISO: x11vnc falhou — sem noVNC (a sessão MCP funciona). Log:" >&2

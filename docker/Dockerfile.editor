@@ -8,9 +8,11 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG RME_RELEASE=v4.0
 ARG RME_ZIP=canary-map-editor-v4.0-ubuntu-24.04.zip
 
+ARG NOVNC_VERSION=1.5.0
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl unzip jq \
-      xvfb x11vnc websockify novnc matchbox-window-manager x11-utils \
+      xvfb x11vnc websockify matchbox-window-manager x11-utils \
       mesa-utils libgl1 libglu1-mesa libglx-mesa0 libgl1-mesa-dri libegl1 \
       libgtk-3-0 libnotify4 libsecret-1-0 libasound2t64 \
       libx11-6 libxext6 libxft2 libxi6 libxrandr2 libxtst6 libxkbcommon0 \
@@ -25,6 +27,13 @@ RUN cd /tmp \
     && mv "$(find /tmp -maxdepth 1 -type d -name 'canary-map-editor-*')" /rme \
     && chmod +x /rme/canary-map-editor \
     && chmod -R a+rwX /rme   # editor-on-host-display.sh roda como o UID do host
+
+# noVNC do apt (Ubuntu) tem um bug de clipboard (clipboardPasteFrom undefined);
+# pega uma versão recente do GitHub.
+RUN curl -fsSL "https://github.com/novnc/noVNC/archive/refs/tags/v${NOVNC_VERSION}.tar.gz" \
+      | tar -xz -C /opt \
+    && ln -s "/opt/noVNC-${NOVNC_VERSION}" /opt/novnc \
+    && ln -s /opt/novnc/vnc.html /opt/novnc/index.html
 
 COPY docker/entrypoint-editor.sh /entrypoint-editor.sh
 RUN chmod +x /entrypoint-editor.sh

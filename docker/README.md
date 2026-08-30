@@ -20,33 +20,41 @@ cp docker/.env.example docker/.env
 docker compose -f docker/docker-compose.yml up --build
 ```
 
-1. Abra **http://localhost:8080/vnc.html** — o editor. Se não abrir um mapa
-   sozinho, `File > New`.
-2. Aponte seu cliente MCP para **http://localhost:8778/mcp**
-   (ex. `.mcp.json`: `{ "mcpServers": { "rme": { "type": "http", "url": "http://localhost:8778/mcp" } } }`).
+**Suba os 3 serviços** (`--build` na primeira vez / depois de `git pull`):
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --build
+```
+
+1. Abra **http://localhost:8080/vnc.html** e clique **Connect** — o editor.
+   Se não abrir um mapa sozinho, `File > New`.
+2. Aponte seu cliente MCP para **http://localhost:8778/mcp**. Isso **não** é
+   pra abrir no browser (um GET dá `Not Acceptable: must accept
+   text/event-stream` — é o servidor funcionando). Vai no `.mcp.json`:
+   `{ "mcpServers": { "rme": { "type": "http", "url": "http://localhost:8778/mcp" } } }`.
 3. No editor: **Scripts → RME Agent → Sessão do agente (MCP)**. Enquanto a
    sessão dura, as ferramentas MCP respondem.
 
-### ⚠️ O canvas do noVNC fica preto
+### O canvas fica preto quando o mapa está vazio
 
-`Xvfb` não tem GL de hardware, então o **mapa não renderiza** no noVNC — só
-os menus, a toolbar, os diálogos e o **Scripts** funcionam. O agente aplica
-tiles normalmente (dá pra conferir com `File > Save` e abrir o `.otbm` noutro
-lugar), você só não vê ao vivo.
+Isso é **normal** — mapa sem tiles = preto. O render do canvas funciona no
+noVNC (software GL). Assim que você (ou o agente, via
+`rme_apply_operations`) botar tiles, eles aparecem. Terrenos escuros +
+sem iluminação renderizam bem escuros; grama/areia com zoom normal fica
+visível.
 
-**Pra VER o mapa** (desktop Linux com X): rode o relay+mcp pelo compose e o
-editor na sua própria tela —
+### Alternativa: janela nativa (`editor-on-host-display.sh`)
+
+Se preferir uma janela na sua tela em vez do browser (desktop Linux com X):
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d relay mcp
 ./docker/editor-on-host-display.sh
 ```
 
-O script lê `TIBIA_ASSETS` do `docker/.env` (o mesmo do compose). A **janela**
-do editor abre na sua tela — não é um link/browser. O container é só pra
-contornar o glibc do binário v4.0; ele entra na rede `rme-agent-bridge` do
-compose pra alcançar o relay (sem publicar porta, sem conflito de
-`address already in use`).
+Lê `TIBIA_ASSETS` do `docker/.env`, roda como o seu UID, entra na rede do
+compose. Com `nvidia-container-toolkit` instalado usa a GPU; senão, software
+GL (renderiza, só mais lento).
 
 ## Assets
 
