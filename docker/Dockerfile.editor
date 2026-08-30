@@ -23,7 +23,8 @@ RUN cd /tmp \
        "https://github.com/opentibiabr/remeres-map-editor/releases/download/${RME_RELEASE}/${RME_ZIP}" \
     && unzip -q rme.zip && rm rme.zip \
     && mv "$(find /tmp -maxdepth 1 -type d -name 'canary-map-editor-*')" /rme \
-    && chmod +x /rme/canary-map-editor
+    && chmod +x /rme/canary-map-editor \
+    && chmod -R a+rwX /rme   # editor-on-host-display.sh roda como o UID do host
 
 COPY docker/entrypoint-editor.sh /entrypoint-editor.sh
 RUN chmod +x /entrypoint-editor.sh

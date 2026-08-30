@@ -36,6 +36,13 @@ if [ -d /dev/dri ]; then
   done
 fi
 
+# roda como o SEU UID pra que a memória compartilhada do X (MIT-SHM) case com
+# o seu Xorg — senão spama `MESA: Failed to attach to x11 shm`.
+XAUTH="${XAUTHORITY:-$HOME/.Xauthority}"
+[ -f "$XAUTH" ] || XAUTH="$(ls /run/user/$(id -u)/*/Xauthority 2>/dev/null | head -1 || true)"
+xauth_args=()
+[ -n "$XAUTH" ] && [ -f "$XAUTH" ] && xauth_args=(-e XAUTHORITY=/tmp/.xauth -v "$XAUTH":/tmp/.xauth:ro)
+
 ASSETS_ID="$(jq -r '.version // "tibia"' "$TIBIA_ASSETS/package.json" 2>/dev/null || echo tibia)"
 
 # entra na rede do compose pra resolver `rme-bridge.local` (sem publicar porta)
@@ -46,8 +53,11 @@ docker network inspect "$NET" >/dev/null 2>&1 || {
   exit 1
 }
 
+echo "[host-editor] abrindo a janela do editor na sua tela…"
 exec docker run --rm -it --ipc=host \
-  -e DISPLAY="$DISPLAY" -v /tmp/.X11-unix:/tmp/.X11-unix "${dri[@]}" \
+  --user "$(id -u):$(id -g)" \
+  -e DISPLAY="$DISPLAY" -e HOME=/tmp \
+  -v /tmp/.X11-unix:/tmp/.X11-unix "${xauth_args[@]}" "${dri[@]}" \
   --network "$NET" \
   -v "$TIBIA_ASSETS":/rme-client:ro \
   -v "$HERE/../rme-scripts/rme_agent.lua":/rme/scripts/rme_agent.lua:ro \
