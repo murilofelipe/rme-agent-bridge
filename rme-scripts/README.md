@@ -105,3 +105,23 @@ Loop de polling do Lua subido para 150s de margem.
 > confirmável numa sessão de GL real ou com um cérebro lento de verdade —
 > headless a transação fecha em milissegundos. O bloqueio físico do input
 > do humano na região continua adiado (provável fork).
+
+### Loop de sessão / MCP (ADR 0002, 2026-08-30, headless)
+
+O modo **Sessão do agente** abre uma conexão `POST /stream` no relay e a
+mantém aberta pela sessão toda; o relay empurra um comando JSON por linha
+(`:keepalive` no idle). Cada comando → `dispatch` → `POST /result`.
+
+> **Achado v4.0:** abrir/fechar um `postJsonStream` a cada poll, **ou**
+> chamar `http.streamClose()` num stream ainda vivo, faz o editor abortar
+> com `std::system_error: Resource deadlock avoided` no teardown do script
+> (ele tenta dar `join` na thread de HTTP de um contexto que trava).
+> **Mitigação:** uma conexão só pela sessão; ao encerrar, `POST /session/end`
+> **primeiro**, drenar `streamRead` até `r.finished`, e **só então**
+> `streamClose`. O `claude_agent.lua` nativo já segue esse padrão (uma
+> stream, fechada depois que o servidor fecha a dele).
+
+Verificado headless: menu → "Sessão do agente" → `POST /session` → `/stream`
+aberto → do terminal, `getSelection` / `apply` (2 `setGround` + auto-contorno)
+/ `getTile` / `endSession` pela fila do relay → resultados voltam → sessão
+encerra **sem crash**.
