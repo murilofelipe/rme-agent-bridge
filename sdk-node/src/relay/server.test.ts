@@ -118,6 +118,77 @@ describe('relay', () => {
     expect(String(((await res.json()) as { error: string }).error)).toMatch(/expirou/);
   }, 5000);
 
+  it('POST /stream: header ndjson + primeira linha (comando ou keepalive)', async () => {
+    const sessionId = await openSession();
+    const res = await fetch(`${base}/stream`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ session: sessionId }),
+    });
+    expect(res.headers.get('content-type')).toMatch(/ndjson/);
+    const reader = res.body!.getReader();
+
+    // enfileira um comando ANTES de ler — deve chegar como uma linha JSON
+    const pending = command('getSelection');
+    const dec = new TextDecoder();
+    let acc = '';
+    let line: string | undefined;
+    while (!line) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      acc += dec.decode(value, { stream: true });
+      line = acc.split('\n').find((l) => l.startsWith('{'));
+    }
+    const cmd = JSON.parse(line as string) as { id: string; op: string };
+    expect(cmd.op).toBe('getSelection');
+    await fetch(`${base}/result`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId, commandId: cmd.id, ok: true, data: null }),
+    });
+    expect(await (await pending).json()).toEqual({ ok: true, data: null });
+    await reader.cancel();
+  }, 15000);
+
+  it('POST /stream sem sessão -> 404', async () => {
+    const res = await fetch(`${base}/stream`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ session: 'nao-existe' }),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it('POST /poll (curl/debug; o editor usa /stream)', async () => {
+    const sessionId = await openSession();
+    const editor = startFakeEditor(base, sessionId, { getTile: () => ({ ground: 4526 }) });
+    const res = await command('getTile', { x: 1, y: 1, z: 7 });
+    expect(await res.json()).toEqual({ ok: true, data: { ground: 4526 } });
+    await editor.stop();
+  });
+
+  it('POST /bridge usa o cérebro injetado (modo "uma instrução")', async () => {
+    await relay.close();
+    relay = await startRelayServer({
+      host: '127.0.0.1',
+      port: 0,
+      brain: () => ({ version: 1, operations: [{ type: 'borderize', x: 1000, y: 1000, z: 7 }] }),
+    });
+    base = `http://127.0.0.1:${relay.port}`;
+    const res = await fetch(`${base}/bridge`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        version: 1,
+        instruction: 'contorna',
+        selection: { min: { x: 1000, y: 1000, z: 7 }, max: { x: 1003, y: 1003, z: 7 } },
+        tiles: [],
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { operations: unknown[] }).operations).toHaveLength(1);
+  });
+
   it('GET /status reflete a sessão ativa', async () => {
     expect(await (await fetch(`${base}/status`)).json()).toEqual({ session: null });
     const sessionId = await openSession();

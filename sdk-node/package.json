@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest",
-    "stub": "npm run build && node dist/bridge/cli.js"
+    "stub": "npm run build && node dist/bridge/cli.js",
+    "relay": "npm run build && node dist/relay/cli.js"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
