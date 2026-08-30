@@ -28,12 +28,25 @@ docker build -q -f "$HERE/Dockerfile.editor" -t "$IMAGE" "$HERE/.." >/dev/null
 xhost "+local:" >/dev/null
 trap 'xhost -local: >/dev/null 2>&1 || true' EXIT
 
-dri=()
-if [ -d /dev/dri ]; then
-  dri+=(--device /dev/dri:/dev/dri)
+# --- GL: NVIDIA (via nvidia-container-toolkit) se der, senão software ---
+# RME_GL=nvidia | software  força; vazio = auto.
+gpu=()
+gl_env=()
+mode="${RME_GL:-auto}"
+if { [ "$mode" = auto ] || [ "$mode" = nvidia ]; } && command -v nvidia-ctk >/dev/null 2>&1; then
+  gpu=(--gpus all)
+  gl_env=(-e NVIDIA_DRIVER_CAPABILITIES=graphics,display,compute,utility -e NVIDIA_VISIBLE_DEVICES=all)
+  echo "[host-editor] GL: NVIDIA (nvidia-container-toolkit)"
+else
+  # llvmpipe renderiza pro X real via swrast — mais lento, mas pinta (o
+  # driver Mesa do container não fala com o X server da NVIDIA).
+  gl_env=(-e LIBGL_ALWAYS_SOFTWARE=1 -e GALLIUM_DRIVER=llvmpipe)
+  [ -d /dev/dri ] && gpu=(--device /dev/dri:/dev/dri)
   for g in render video; do
-    gid=$(getent group "$g" | cut -d: -f3 || true); [ -n "$gid" ] && dri+=(--group-add "$gid")
+    gid=$(getent group "$g" | cut -d: -f3 || true); [ -n "$gid" ] && gpu+=(--group-add "$gid")
   done
+  echo "[host-editor] GL: software (llvmpipe). Pra usar a GPU: instale o"
+  echo "[host-editor]     nvidia-container-toolkit e rode de novo (RME_GL=nvidia)."
 fi
 
 # roda como o SEU UID pra que a memória compartilhada do X (MIT-SHM) case com
@@ -56,8 +69,8 @@ docker network inspect "$NET" >/dev/null 2>&1 || {
 echo "[host-editor] abrindo a janela do editor na sua tela…"
 exec docker run --rm -it --ipc=host \
   --user "$(id -u):$(id -g)" \
-  -e DISPLAY="$DISPLAY" -e HOME=/tmp \
-  -v /tmp/.X11-unix:/tmp/.X11-unix "${xauth_args[@]}" "${dri[@]}" \
+  -e DISPLAY="$DISPLAY" -e HOME=/tmp "${gl_env[@]}" \
+  -v /tmp/.X11-unix:/tmp/.X11-unix "${xauth_args[@]}" "${gpu[@]}" \
   --network "$NET" \
   -v "$TIBIA_ASSETS":/rme-client:ro \
   -v "$HERE/../rme-scripts/rme_agent.lua":/rme/scripts/rme_agent.lua:ro \
