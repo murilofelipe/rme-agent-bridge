@@ -50,3 +50,4 @@ services:
 
 networks:
   rme:
+    name: rme-agent-bridge   # nome fixo — o editor-on-host-display.sh entra nela
