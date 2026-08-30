@@ -10,7 +10,7 @@ ARG RME_ZIP=canary-map-editor-v4.0-ubuntu-24.04.zip
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl unzip jq \
-      xvfb x11vnc websockify novnc matchbox-window-manager \
+      xvfb x11vnc websockify novnc matchbox-window-manager x11-utils \
       mesa-utils libgl1 libglu1-mesa libglx-mesa0 libgl1-mesa-dri libegl1 \
       libgtk-3-0 libnotify4 libsecret-1-0 libasound2t64 \
       libx11-6 libxext6 libxft2 libxi6 libxrandr2 libxtst6 libxkbcommon0 \
