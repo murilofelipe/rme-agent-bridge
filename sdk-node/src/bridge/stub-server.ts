@@ -11,8 +11,9 @@
 
 import { createServer, IncomingMessage, Server, ServerResponse } from 'node:http';
 
-import { validateRequest, validateResponse } from '../contract';
-import type { BridgeRequest, BridgeResponse, Selection } from '../contract';
+import type { BridgeRequest, BridgeResponse } from '../contract';
+import { handleRequest } from './handler';
+import type { Brain } from './handler';
 
 export interface StubServerOptions {
   /** Host de bind. Padrão `0.0.0.0`. Nunca use `127.0.0.1` — o editor bloqueia. */
@@ -80,8 +81,15 @@ export function createStubServer(options: StubServerOptions): Server {
       return;
     }
 
+    const brain: Brain = (parsedReq) => {
+      options.onRequest?.(parsedReq);
+      const draft = options.respond ? options.respond(parsedReq) : options.cannedResponse;
+      if (!draft) throw new Error('stub sem `respond` nem `cannedResponse`');
+      return draft;
+    };
+
     readBody(req)
-      .then((raw) => {
+      .then(async (raw) => {
         let parsed: unknown;
         try {
           parsed = JSON.parse(raw);
@@ -90,33 +98,9 @@ export function createStubServer(options: StubServerOptions): Server {
           return;
         }
 
-        const reqResult = validateRequest(parsed);
-        if (!reqResult.ok) {
-          sendJson(res, 422, { error: reqResult.error });
-          return;
-        }
-
-        options.onRequest?.(reqResult.value);
-
-        const draft = options.respond
-          ? options.respond(reqResult.value)
-          : options.cannedResponse;
-        if (!draft) {
-          sendJson(res, 500, { error: 'stub sem `respond` nem `cannedResponse`' });
-          return;
-        }
-
-        // sanidade: a response tem que ser válida contra a seleção recebida
-        const selection: Selection = reqResult.value.selection;
-        const respResult = validateResponse(draft, selection);
-        if (!respResult.ok) {
-          sendJson(res, 500, {
-            error: `response inválida para esta seleção: ${respResult.error}`,
-          });
-          return;
-        }
-
-        sendJson(res, 200, respResult.value);
+        const result = await handleRequest(parsed, brain);
+        if (result.ok) sendJson(res, 200, result.response);
+        else sendJson(res, result.status, { error: result.error });
       })
       .catch((err: unknown) => {
         sendJson(res, 400, { error: err instanceof Error ? err.message : 'erro ao ler o corpo' });
