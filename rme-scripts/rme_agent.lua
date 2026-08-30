@@ -78,14 +78,46 @@ local function callBridge(request)
 	return parsed
 end
 
--- aplica as operações numa transação única (1 passo de undo; rollback em erro)
-local function applyOperations(operations)
+local function inBounds(op, s)
+	return op.x >= s.min.x and op.x <= s.max.x
+		and op.y >= s.min.y and op.y <= s.max.y
+		and op.z >= s.min.z and op.z <= s.max.z
+end
+
+-- ACHADO v4.0: app.transaction ENGOLE o erro do callback e faz COMMIT do
+-- trabalho parcial — não há rollback automático. Então tudo o que dá para
+-- checar em Lua é checado ANTES de abrir a transação; o que entra na
+-- transação só pode falhar no nível da engine (id inexistente), e aí sobra
+-- trabalho parcial que UM Ctrl+Z desfaz (o passo de undo é único).
+local NEEDS_ID = { setGround = true, addItem = true, removeItem = true }
+local function precheck(operations, selection)
+	for i, op in ipairs(operations) do
+		if not inBounds(op, selection) then
+			return "operação " .. i .. ": fora da seleção (" .. op.x .. "," .. op.y .. "," .. op.z .. ")"
+		end
+		if NEEDS_ID[op.type] and type(op.id) ~= "number" then
+			return "operação " .. i .. ": " .. tostring(op.type) .. " sem id"
+		elseif op.type == "applyBrush" and (op.name == nil or op.name == "") then
+			return "operação " .. i .. ": applyBrush sem name"
+		elseif not NEEDS_ID[op.type] and op.type ~= "applyBrush" and op.type ~= "borderize" then
+			return "operação " .. i .. ": tipo desconhecido " .. tostring(op.type)
+		end
+	end
+	return nil
+end
+
+-- aplica as operações numa transação única (1 passo de undo)
+local function applyOperations(operations, selection)
+	local err = precheck(operations, selection)
+	if err then
+		error(err)
+	end
 	local applied = 0
 	app.transaction("RME Agent", function()
-		for i, op in ipairs(operations) do
+		for _, op in ipairs(operations) do
 			local tile = app.map:getOrCreateTile(op.x, op.y, op.z)
 			if not tile then
-				error("operação " .. i .. ": tile inválido (" .. op.x .. "," .. op.y .. "," .. op.z .. ")")
+				error("tile inválido (" .. op.x .. "," .. op.y .. "," .. op.z .. ")")
 			end
 			if op.type == "setGround" then
 				tile.ground = op.id
@@ -102,8 +134,6 @@ local function applyOperations(operations)
 				tile:applyBrush(op.name, false)
 			elseif op.type == "borderize" then
 				tile:borderize()
-			else
-				error("operação " .. i .. ": tipo desconhecido " .. tostring(op.type))
 			end
 			applied = applied + 1
 		end
@@ -149,6 +179,10 @@ if not response then
 	app.alert("Falha na ponte: " .. tostring(err))
 	return
 end
+if response.error then
+	app.alert("Ponte recusou: " .. tostring(response.error))
+	return
+end
 if response.version ~= CONTRACT_VERSION then
 	app.alert("versão de resposta incompatível: " .. tostring(response.version))
 	return
@@ -158,7 +192,7 @@ if type(response.operations) ~= "table" then
 	return
 end
 
-local ok, result = pcall(applyOperations, response.operations)
+local ok, result = pcall(applyOperations, response.operations, selection)
 if not ok then
 	app.alert("Erro ao aplicar — transação revertida:\n" .. tostring(result))
 	return
