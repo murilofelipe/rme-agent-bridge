@@ -10,7 +10,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "jest"
+    "test": "jest",
+    "stub": "npm run build && node dist/bridge/cli.js"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
