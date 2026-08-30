@@ -77,11 +77,11 @@ rme-agent-bridge/
 └── README.md
 ```
 
-> `core-cpp/`, `agent-python/` e `docker/` são andaime do plano antigo (fork do
-> RME + agente autônomo próprio). A arquitetura colapsou para *scripts Lua +
-> lado-terminal* quando a investigação
+> O plano antigo (fork do RME + agente autônomo próprio, `core-cpp/` +
+> `agent-python/` + `docker/`) foi removido: a investigação
 > (`docs/planejamento/investigacao-lua-api-rme.md`) mostrou que a API Lua da
-> v4.0 já cobre o essencial — esses diretórios devem sair.
+> v4.0 já cobre o essencial, e a arquitetura colapsou para *scripts Lua +
+> lado-terminal*.
 
 ---
 
