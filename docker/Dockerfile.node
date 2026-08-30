@@ -1,0 +1,19 @@
+# Imagem única para os serviços Node (relay + mcp). Contexto de build = raiz do repo.
+FROM node:20-slim
+
+WORKDIR /app
+
+# deps primeiro (cache)
+COPY sdk-node/package.json sdk-node/package-lock.json sdk-node/
+RUN cd sdk-node && npm ci
+COPY mcp-node/package.json mcp-node/package-lock.json mcp-node/
+RUN cd mcp-node && npm ci
+
+# fonte + build
+COPY sdk-node/ sdk-node/
+RUN cd sdk-node && npm run build
+COPY mcp-node/ mcp-node/
+RUN cd mcp-node && npm run build
+
+# o comando concreto vem do docker-compose (relay ou mcp)
+CMD ["node", "sdk-node/dist/relay/cli.js", "--host", "0.0.0.0", "--port", "8777"]

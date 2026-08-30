@@ -24,3 +24,6 @@ build/
 .idea/
 .vscode/
 *.swp
+
+# Docker (local)
+docker/.env
