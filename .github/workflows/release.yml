@@ -1,0 +1,58 @@
+name: Release
+
+# Publica @rme-agent-bridge/mcp no npm quando você empurra uma tag vX.Y.Z.
+# Requer o secret NPM_TOKEN no repo (Settings → Secrets and variables → Actions):
+# um Granular Access Token do npm com write em @rme-agent-bridge e bypass 2FA.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish-mcp:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # provenance (npm --provenance); precisa de repo público
+    defaults:
+      run:
+        working-directory: mcp-node
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+          cache-dependency-path: mcp-node/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+
+      # a tag (vX.Y.Z) tem que bater com a version do package.json
+      - name: Confere a versão
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          echo "tag=$TAG  package.json=$PKG"
+          [ "$TAG" = "$PKG" ] || { echo "::error::tag $TAG != package.json $PKG — bump o package.json"; exit 1; }
+
+      # pula se essa versão já está no npm (re-run de tag, etc.)
+      - name: Já publicado?
+        id: check
+        run: |
+          if npm view "@rme-agent-bridge/mcp@$(node -p "require('./package.json').version")" version >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::essa versão já está no npm — nada a fazer"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: npm publish
+        if: steps.check.outputs.publish == 'true'
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
