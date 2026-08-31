@@ -1,20 +1,38 @@
 {
   "name": "@rme-agent-bridge/sdk",
-  "version": "0.1.0",
-  "description": "SDK middleware que traduz intenções de alto nível em chamadas à API do RME.",
+  "version": "0.1.1",
+  "description": "Lado-terminal do RME Agent Bridge: contrato de mensagens, validação, relay (fila + sessão) e cérebro claude -p.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/murilofelipe/rme-agent-bridge.git",
+    "directory": "sdk-node"
+  },
+  "homepage": "https://github.com/murilofelipe/rme-agent-bridge/tree/main/sdk-node",
+  "keywords": ["opentibia", "tibia", "map-editor", "rme", "mcp", "relay"],
+  "engines": {
+    "node": ">=20"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "rme-relay": "dist/relay/cli.js",
+    "rme-stub": "dist/bridge/cli.js"
+  },
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest",
     "stub": "npm run build && node dist/bridge/cli.js",
-    "relay": "npm run build && node dist/relay/cli.js"
+    "relay": "npm run build && node dist/relay/cli.js",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

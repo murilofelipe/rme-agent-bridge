@@ -1,6 +1,6 @@
 {
   "name": "@rme-agent-bridge/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server que expõe o editor RME (via relay, ADR 0002) como ferramentas para qualquer agente.",
   "license": "MIT",
   "type": "module",

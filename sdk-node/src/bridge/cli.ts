@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Sobe o servidor stub para o tracer bullet #10.
  *

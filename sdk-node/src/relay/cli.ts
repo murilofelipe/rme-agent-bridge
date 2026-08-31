@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Sobe o relay (ADR 0002).
  *
