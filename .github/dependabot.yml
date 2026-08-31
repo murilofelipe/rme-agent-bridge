@@ -2,9 +2,28 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: /sdk-node
+    target-branch: develop
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-deps:
+        dependency-type: development
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /mcp-node
+    target-branch: develop
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-deps:
+        dependency-type: development
+        patterns: ["*"]
+
   - package-ecosystem: github-actions
     directory: /
+    target-branch: develop
     schedule:
       interval: weekly
