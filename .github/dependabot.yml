@@ -1,4 +1,8 @@
 version: 2
+
+# Só minor/patch das dev-deps, num PR agrupado por semana. Majors do toolchain
+# (typescript, eslint, @typescript-eslint/*, jest) exigem migração manual —
+# faça à mão quando quiser, o Dependabot não abre PR pra eles.
 updates:
   - package-ecosystem: npm
     directory: /sdk-node
@@ -10,6 +14,9 @@ updates:
       dev-deps:
         dependency-type: development
         patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /mcp-node
@@ -21,6 +28,9 @@ updates:
       dev-deps:
         dependency-type: development
         patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
