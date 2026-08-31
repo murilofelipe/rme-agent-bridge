@@ -20,6 +20,31 @@ them directly.
 
 ---
 
+## ⚡ Quickstart (Docker)
+
+Needs: Docker + a folder with **Tibia 12+ assets** (`assets/catalog-content.json`
++ `package.json`) on your disk.
+
+```bash
+git clone https://github.com/murilofelipe/rme-agent-bridge
+cd rme-agent-bridge
+cp docker/.env.example docker/.env      # set TIBIA_ASSETS to the absolute assets path
+docker compose -f docker/docker-compose.yml up -d --build
+```
+
+1. Editor: **http://localhost:8080/vnc.html** → *Connect*. `File → New` if no
+   map opens. (Black canvas = empty map, that's normal.)
+2. Your MCP client → `http://localhost:8778/mcp`. Or the plugin:
+   `/plugin marketplace add murilofelipe/rme-agent-bridge` + `/plugin install`.
+3. In the editor: **Scripts → RME Agent → Agent session (MCP)**.
+4. Ask the agent: *"fill x=1000..1030 y=1000..1030 z=7 with grass and put a lake
+   in the middle"* → tiles show up on the canvas, one Ctrl+Z undoes it.
+
+Details and alternatives (native window, no browser) in
+[`docker/README.md`](docker/README.md).
+
+---
+
 ## 🎯 What this project is (and isn't)
 
 **The bridge is the product.** Who the agent is — Claude Code, a local model,
@@ -57,8 +82,9 @@ agent's job. The bridge only exposes the map in a shape an LLM can reason about.
   — `canary-map-editor` v4.0+ build (has the Lua API: `app.transaction`, `map`,
   `tile`, `app.mapView.addOverlay`, `http`, `Dialog`)
 - Client/items: recent Tibia (protocol 13.x) — a single target
-- Transport: **HTTP**, one round-trip per invocation — the Lua script calls a
-  local bridge via a LAN IP or an `/etc/hosts` alias (ADR 0001)
+- Transport: **HTTP** (ADR 0001). The editor blocks `localhost`/`127.`, so the
+  bridge lives on a network alias (`rme-bridge.local`, via docker-compose) or a
+  LAN IP.
 
 ---
 

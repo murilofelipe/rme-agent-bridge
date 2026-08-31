@@ -1,11 +1,13 @@
 {
   "name": "@rme-agent-bridge/sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "SDK middleware que traduz intenções de alto nível em chamadas à API do RME.",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
