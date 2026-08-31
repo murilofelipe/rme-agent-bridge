@@ -1,0 +1,11 @@
+{
+  "name": "rme-agent-bridge",
+  "version": "0.1.0",
+  "description": "Ferramentas MCP do Remere's Map Editor + comandos pra subir o docker-compose (editor headless + relay + MCP). Ver ADR 0002.",
+  "author": {
+    "name": "Murilo Felipe"
+  },
+  "repository": "https://github.com/murilofelipe/rme-agent-bridge",
+  "license": "MIT",
+  "keywords": ["opentibia", "map-editor", "mcp", "rme", "tibia"]
+}

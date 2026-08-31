@@ -1,0 +1,29 @@
+{
+  "name": "@rme-agent-bridge/sdk",
+  "version": "0.1.0",
+  "description": "SDK middleware que traduz intenções de alto nível em chamadas à API do RME.",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "jest",
+    "stub": "npm run build && node dist/bridge/cli.js",
+    "relay": "npm run build && node dist/relay/cli.js"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.5",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "rme-agent-bridge",
+  "description": "Ponte entre agentes de IA e o Remere's Map Editor (mapas OpenTibia) via MCP.",
+  "owner": {
+    "name": "Murilo Felipe"
+  },
+  "plugins": [
+    {
+      "name": "rme-agent-bridge",
+      "source": "./plugin",
+      "description": "Ferramentas MCP do Remere's Map Editor + comandos pra subir o docker-compose (editor headless + relay + MCP).",
+      "category": "development",
+      "keywords": ["opentibia", "map-editor", "mcp", "rme", "tibia"]
+    }
+  ]
+}

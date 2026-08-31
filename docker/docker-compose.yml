@@ -1,0 +1,53 @@
+# RME Agent Bridge — editor + ponte + MCP num `up` só (ADR 0002).
+#
+#   cp docker/.env.example docker/.env   # e aponte TIBIA_ASSETS pro seu disco
+#   docker compose -f docker/docker-compose.yml up --build
+#
+# Depois: abra http://localhost:8080/vnc.html (o editor), e aponte seu cliente
+# MCP pra http://localhost:8778/mcp. No editor: Scripts -> RME Agent ->
+# "Sessão do agente". Os assets do Tibia são seus (Cipsoft) — montados, não
+# empacotados.
+
+services:
+  relay:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.node
+    command: node sdk-node/dist/relay/cli.js --host 0.0.0.0 --port 8777
+    networks:
+      rme:
+        aliases:
+          - rme-bridge.local   # o editor bloqueia localhost/127. (ADR 0001)
+
+  mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.node
+    command: node mcp-node/dist/index.js --http --port 8778
+    environment:
+      RME_RELAY_URL: http://relay:8777
+    ports:
+      - "8778:8778"           # cliente MCP conecta aqui
+    depends_on:
+      - relay
+    networks:
+      - rme
+
+  editor:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.editor
+    volumes:
+      - ${TIBIA_ASSETS:?defina TIBIA_ASSETS no docker/.env (pasta com assets/catalog-content.json + package.json)}:/rme-client:ro
+      - ../rme-scripts/rme_agent.lua:/rme/scripts/rme_agent.lua:ro
+    ports:
+      - "8080:8080"            # noVNC no browser
+    ipc: host                  # MESA shm sob xvfb
+    depends_on:
+      - relay
+    networks:
+      - rme
+
+networks:
+  rme:
+    name: rme-agent-bridge   # nome fixo — o editor-on-host-display.sh entra nela

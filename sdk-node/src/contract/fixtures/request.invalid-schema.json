@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "instruction": "tile fora da seleção",
+  "selection": {
+    "min": { "x": 1000, "y": 1000, "z": 7 },
+    "max": { "x": 1003, "y": 1003, "z": 7 }
+  },
+  "tiles": [
+    { "x": 5000, "y": 5000, "z": 7, "ground": 4526 }
+  ]
+}

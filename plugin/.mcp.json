@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "rme": {
+      "type": "http",
+      "url": "http://localhost:8778/mcp"
+    }
+  }
+}
