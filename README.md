@@ -100,6 +100,8 @@ rme-agent-bridge/
 │       ├── bridge/    # handler + servidor stub + claudeBrain
 │       └── relay/     # fila de comandos + sessão (ADR 0002)
 ├── mcp-node/     # MCP server (@rme-agent-bridge/mcp) — expõe o editor como ferramentas
+├── docker/       # editor headless + noVNC + relay + MCP num `docker compose up`
+├── plugin/       # plugin do Claude Code (marketplace + comandos)
 ├── docs/
 │   ├── adr/          # decisões (0001 = transporte HTTP · 0002 = MCP + janela de sessão)
 │   ├── agents/       # config das engineering skills
@@ -109,7 +111,7 @@ rme-agent-bridge/
 ```
 
 > O plano antigo (fork do RME + agente autônomo próprio, `core-cpp/` +
-> `agent-python/` + `docker/`) foi removido: a investigação
+> `agent-python/`) foi removido: a investigação
 > (`docs/planejamento/investigacao-lua-api-rme.md`) mostrou que a API Lua da
 > v4.0 já cobre o essencial, e a arquitetura colapsou para *scripts Lua +
 > lado-terminal*.
